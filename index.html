@@ -1,72 +1,306 @@
-<!DOCTYPE HTML>
 <html>
 
 <head>
-    <meta charset="utf-8">
-    <title> Sample </title>
-    <script type="text/javascript" src="gl-matrix.js"></script>
+  <title>Mandelbrot</title>
 
-    <script id="shader-fs" type="x-shaders/x-fragment">
-    precision meiump float;
-    uniform float cell-width;
-    void main( void )
-    {
-        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-    }
-    </script>
+  <p>click near the border to move away(temporal)</p>
 
-    <script id="shader-vs" type="x-shaders/x-vertex">
-    attribyte ve3 aVertexPos;
-    uniform mat4 UpMatrix;
-    uniform mat4 UmvMatrix;
-    void main( void )
+
+
+
+  <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
+
+  <script id="shader-fs" type="x-shader/x-fragment">
+    precision mediump float;
+
+    uniform float cell_width, mdz, mdx, mdy;
+
+    void main(void)
     {
+      float xTemp, yTemp;
+      float x, y;
+      bool isit = false;
+      float scale = mdz * 150.0;
+      int stopiter = 5000;
+      float cof = 0.1; /* vel */
         
-    }</script>
-    <script type="text/javascript">
-        let fragmentShaderSrc =
-            `
-    precision meiump float;
-    uniform float cell-width;
-    void main( void )
+      float xold = (gl_FragCoord.x - 270.0 + mdx * cof) / scale, yold = (gl_FragCoord.y - 200.0 + mdy * cof) / scale;
+      x = xold;
+      y = yold;
+      for (int iterator = 0; iterator < 2500; iterator++){
+        if (iterator > int(cell_width))
+          continue;
+        if (x * x + y * y > 4.0)
+        {
+          isit = true;
+          stopiter = iterator;
+        }
+        xTemp = x * x - y * y + xold;
+        yTemp = 2.0 * x * y +  yold;
+        x = xTemp;
+        y = yTemp;
+      }
+      if (isit)
+        gl_FragColor = vec4(0.1 + float(stopiter) * 0.015, 0.1 + float(stopiter) * 0.03, 0.1 + float(stopiter) * 0.00, 1.0);
+      if (!isit) 
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    }
+</script>
+
+  <script id="shader-vs" type="x-shader/x-vertex">
+    attribute vec3 aVertexPosition;
+
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+
+    void main(void)
     {
-        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-    }`;
-        let vertexShaderSrc =
-            ``;
+        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+    }
+</script>
 
-        function getShader(gl, type, src) {
-            let shader = createShader(type);
-            gl.shaderSource(shader, src);
-            gl.compileShader(shader);
 
-            if (!gl.getShaderParaameter(shader, gl.COMPILE_STATUS)) {
-                windows.alert(gl.getShaderInfoLog(shader));
-            }
-            return shader;
+  <script type="text/javascript">
+    var gl;
+    var checkers_cell_width, MouseDX, MouseDY, MouseDZ;
+    function initGL(canvas) {
+      try {
+        gl = canvas.getContext("experimental-webgl");
+        gl.viewportWidth = canvas.width;
+        gl.viewportHeight = canvas.height;
+      } catch (e) {
+        /*update_MouseD(e);*//**/
+      }
+      if (!gl) {
+        alert("Could not initialise WebGL");
+      }
+    }
+
+
+    function getShader(gl, id) {
+      var shaderScript = document.getElementById(id);
+      if (!shaderScript) {
+        return null;
+      }
+
+      var str = "";
+      var k = shaderScript.firstChild;
+      while (k) {
+        if (k.nodeType == 3) {
+          str += k.textContent;
         }
-    </script>
+        k = k.nextSibling;
+      }
 
-    <script type="text/javascript">
-        function InitRender() {
-            ///console.log("Hello");
-            let canvas = document.getElementById("webgl-canvas");
-            let gl = canvas.getContext("experimantal-webgl");
-            gl.viewportWidth = canvas.width;
-            gl.viewportHeight = canvas.height;
-            gl.clearColor(1.0, 0.5, 0.0, 1.0);
-            gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
-            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-            ///gl.enable(gl.DEPTH_TEST);
+      var shader;
+      if (shaderScript.type == "x-shader/x-fragment") {
+        shader = gl.createShader(gl.FRAGMENT_SHADER);
+      } else if (shaderScript.type == "x-shader/x-vertex") {
+        shader = gl.createShader(gl.VERTEX_SHADER);
+      } else {
+        return null;
+      }
 
-        }
-    </script>
+      gl.shaderSource(shader, str);
+      gl.compileShader(shader);
+
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        alert(gl.getShaderInfoLog(shader));
+        return null;
+      }
+
+      return shader;
+    }
+
+    var shaderProgram;
+
+    function initShaders() {
+      var fragmentShader = getShader(gl, "shader-fs");
+      var vertexShader = getShader(gl, "shader-vs");
+
+      shaderProgram = gl.createProgram();
+      gl.attachShader(shaderProgram, vertexShader);
+      gl.attachShader(shaderProgram, fragmentShader);
+      gl.linkProgram(shaderProgram);
+
+      if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+        alert("Could not initialise shaders");
+      }
+
+      gl.useProgram(shaderProgram);
+
+      shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+      gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+      shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+      shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+      shaderProgram.cell_width_uniform = gl.getUniformLocation(shaderProgram, "cell_width");
+      shaderProgram.mdx_uniform = gl.getUniformLocation(shaderProgram, "mdx");
+      shaderProgram.mdy_uniform = gl.getUniformLocation(shaderProgram, "mdy");
+      shaderProgram.mdz_uniform = gl.getUniformLocation(shaderProgram, "mdz");
+    }
+
+
+    var mvMatrix = mat4.create();
+    var pMatrix = mat4.create();
+
+    function setMatrixUniforms() {
+      gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
+      gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
+      gl.uniform1f(shaderProgram.cell_width_uniform, checkers_cell_width);
+      gl.uniform1f(shaderProgram.mdx_uniform, MouseDX);
+      gl.uniform1f(shaderProgram.mdy_uniform, MouseDY);
+      gl.uniform1f(shaderProgram.mdz_uniform, MouseDZ);
+    }
+
+    var squareVertexPositionBuffer;
+
+    function initBuffers() {
+      scalem = 1.0;
+      squareVertexPositionBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
+      vertices = [
+        1.0 * scalem, 1.0 * scalem, 0.0,
+        -1.0 * scalem, 1.0 * scalem, 0.0,
+        1.0 * scalem, -1.0 * scalem, 0.0,
+        -1.0 * scalem, -1.0 * scalem, 0.0
+      ];
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+      squareVertexPositionBuffer.itemSize = 3;
+      squareVertexPositionBuffer.numItems = 4;
+    }
+
+
+    function drawScene() {
+      scalem = 0.3;
+      gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+      mat4.perspective(45.0, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
+
+      mat4.identity(mvMatrix);
+
+      //mat4.translate(mvMatrix, [-1.5, 0.0, -7]);
+      //mat4.scale(mvMatrix, [3, 0.0, -1.0]);
+      mat4.translate(mvMatrix, [0.0, 0.0, -1.0 * scalem]);
+      gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
+      gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, squareVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+      setMatrixUniforms();
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertexPositionBuffer.numItems);
+    }
+
+    function tick() {
+      window.requestAnimationFrame(tick);
+      drawScene();
+    }
+
+
+    function webGLStart() {
+      checkers_cell_width = 900;
+      MouseDX = 0.0;
+      MouseDY = 0.0;
+      MouseDZ = 1.0;
+      MouseXO = 0.0, MouseYO = 0.0;
+      MouseZO = 0.0;
+      MouseXS = 0.0, MouseYS = 0.0;
+      document.getElementById('input_checkers_cell_width').value = checkers_cell_width; /**/
+
+      var xmlhttp = new XMLHttpRequest();
+      xmlhttp.open('GET', '/data.txt', false);
+      xmlhttp.send(null);
+      if (xmlhttp.status == 200) {
+        alert(xmlhttp.responseText);
+      }
+
+      var canvas = document.getElementById("wegl-canvas");
+      initGL(canvas);
+      initShaders();
+      initBuffers();
+
+      gl.clearColor(0.0, 0.0, 0.0, 1.0);
+      gl.enable(gl.DEPTH_TEST);
+
+      drawScene();
+      tick();
+    }
+
+    function update_checkers_cell_width() {/**/
+      data = document.getElementById('input_checkers_cell_width').value;
+      checkers_cell_width = parseInt(data);
+      if (isNaN(checkers_cell_width))
+        checkers_cell_width = 1;
+      //alert(data);
+    }
+    function update_mouse(e) {/**/
+      var x = e.clientX;
+      var y = e.clientY;
+      MouseDX = MouseXO - x + MouseXS;
+      MouseDY = y - MouseYO + MouseYS;
+
+      MouseXOld = x;
+      MouseYOld = y;
+    }
+    function over_update_mouse(e) {/**/
+      var x = e.clientX;
+      var y = e.clientY;
+      MouseXOld = x;
+      MouseYOld = y;
+      //update_mouse(e);
+    }
+    function out_update_mouse(e) {/**/
+      MouseXS = e.clientX;
+      MouseYS = e.clientY;
+      //update_mouse(e);
+    }
+    function click_update_mouse(e) {/**/
+      var x = e.clientX;
+      var y = e.clientY;
+      if (x > 450 || x < 50 || y < 50 || y > 450)
+        MouseDZ = MouseDZ / 1.3;
+      else
+        MouseDZ = MouseDZ * 1.3;
+    }
+
+
+
+
+    function myFunction(e) {
+      var x = e.clientX;
+      var y = e.clientY;
+      var coor = "Coordinates: (" + x + "," + y + ")";
+      document.getElementById("demoa").innerHTML = coor;
+    }
+
+    function clearCoor() {
+      document.getElementById("demoa").innerHTML = "";
+    }
+  </script>
+
+
+  <button>!</button>
+  <script>/**/
+  //  document.body.children[0].onclick = function (e) {
+  //    if (!e.altKey || !e.shiftKey) return;
+  //    alert('!');
+  //  }
+  </script>
+
 </head>
 
-<body onload="InitRender()">
-    Text
-    <div>Text in</div>
-    <canvas id="webgl-canvas" style="border: none;" width="500" height="500"></canvas>
+
+<body onload="webGLStart();">
+  <p id="demoa"></p>
+
+
+
+  <canvas id="wegl-canvas" style="border: none;" width="500" height="500" onmouseout="out_update_mouse(event);"
+    onmouseover="over_update_mouse(event);" onmousemove="update_mouse(event); myFunction(event);"
+    onmousedown="click_update_mouse(event);"></canvas>
+
+  <br>
+  <label for="input_checkers_cell_width"> cell width</label> <input type="text" id="input_checkers_cell_width"
+    onkeyup="update_checkers_cell_width();"></br>
+
 </body>
 
 </html>

@@ -3,7 +3,7 @@
 <head>
   <title>Mandelbrot</title>
 
-  <p>click near the border to move away(temporal)</p>
+  <p>click near the border to move away</p>
 
 
 
@@ -13,21 +13,23 @@
   <script id="shader-fs" type="x-shader/x-fragment">
     precision mediump float;
 
-    uniform float cell_width, mdz, mdx, mdy;
-
-    void main(void)
+    uniform float
+      cell_width,
+      mdz, mdx, mdy;
+    
+    vec4 mandel( int stopiter, float scale, float cof )
     {
-      float xTemp, yTemp;
-      float x, y;
       bool isit = false;
-      float scale = mdz * 150.0;
-      int stopiter = 5000;
-      float cof = 0.1; /* vel */
-        
-      float xold = (gl_FragCoord.x - 270.0 + mdx * cof) / scale, yold = (gl_FragCoord.y - 200.0 + mdy * cof) / scale;
+      float xTemp, yTemp, x, y;
+      float
+        xold = (gl_FragCoord.x - 270.0 + mdx * cof) / scale,
+        yold = (gl_FragCoord.y - 200.0 + mdy * cof) / scale;
+      
       x = xold;
       y = yold;
-      for (int iterator = 0; iterator < 2500; iterator++){
+
+      for (int iterator = 0; iterator < 1000; iterator++)
+      {
         if (iterator > int(cell_width))
           continue;
         if (x * x + y * y > 4.0)
@@ -40,10 +42,16 @@
         x = xTemp;
         y = yTemp;
       }
+
       if (isit)
-        gl_FragColor = vec4(0.1 + float(stopiter) * 0.015, 0.1 + float(stopiter) * 0.03, 0.1 + float(stopiter) * 0.00, 1.0);
-      if (!isit) 
-        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+        return vec4(0.1 + float(stopiter) * 0.015, 0.1 + float(stopiter) * 0.03, 0.1 + float(stopiter) * 0.00, 1.0);
+      else 
+        return vec4(0.0, 0.0, 0.0, 1.0);
+    }
+
+    void main(void)
+    {
+      gl_FragColor = mandel(3000, mdz * 150.0, 0.1);
     }
 </script>
 
@@ -62,14 +70,13 @@
 
   <script type="text/javascript">
     var gl;
-    var checkers_cell_width, MouseDX, MouseDY, MouseDZ;
+    //var checkers_cell_width, MouseDX, MouseDY, MouseDZ;
     function initGL(canvas) {
       try {
         gl = canvas.getContext("experimental-webgl");
         gl.viewportWidth = canvas.width;
         gl.viewportHeight = canvas.height;
       } catch (e) {
-        /*update_MouseD(e);*//**/
       }
       if (!gl) {
         alert("Could not initialise WebGL");
@@ -156,14 +163,13 @@
     var squareVertexPositionBuffer;
 
     function initBuffers() {
-      scalem = 1.0;
       squareVertexPositionBuffer = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
       vertices = [
-        1.0 * scalem, 1.0 * scalem, 0.0,
-        -1.0 * scalem, 1.0 * scalem, 0.0,
-        1.0 * scalem, -1.0 * scalem, 0.0,
-        -1.0 * scalem, -1.0 * scalem, 0.0
+        1.0, 1.0, 0.0,
+        -1.0, 1.0, 0.0,
+        1.0, -1.0, 0.0,
+        -1.0, -1.0, 0.0
       ];
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
       squareVertexPositionBuffer.itemSize = 3;
@@ -182,7 +188,7 @@
 
       //mat4.translate(mvMatrix, [-1.5, 0.0, -7]);
       //mat4.scale(mvMatrix, [3, 0.0, -1.0]);
-      mat4.translate(mvMatrix, [0.0, 0.0, -1.0 * scalem]);
+      mat4.translate(mvMatrix, [0.0, 0.0, -1.0]);
       gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
       gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, squareVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
       setMatrixUniforms();
@@ -196,21 +202,23 @@
 
 
     function webGLStart() {
+      down_flag = false;
       checkers_cell_width = 900;
-      MouseDX = 0.0;
-      MouseDY = 0.0;
+      MouseDX = 0.0, MouseDY = 0.0; /* delta */
       MouseDZ = 1.0;
-      MouseXO = 0.0, MouseYO = 0.0;
+      MouseXO = 0.0, MouseYO = 0.0; /* old */
       MouseZO = 0.0;
-      MouseXS = 0.0, MouseYS = 0.0;
+      MouseXS = 0.0, MouseYS = 0.0; /* w pos */
       document.getElementById('input_checkers_cell_width').value = checkers_cell_width; /**/
 
+      /*
       var xmlhttp = new XMLHttpRequest();
-      xmlhttp.open('GET', '/data.txt', false);
+      xmlhttp.open('GET', 'data.txt', false);
       xmlhttp.send(null);
       if (xmlhttp.status == 200) {
         alert(xmlhttp.responseText);
       }
+      */
 
       var canvas = document.getElementById("wegl-canvas");
       initGL(canvas);
@@ -220,18 +228,25 @@
       gl.clearColor(0.0, 0.0, 0.0, 1.0);
       gl.enable(gl.DEPTH_TEST);
 
-      drawScene();
+      //drawScene();
       tick();
     }
 
-    function update_checkers_cell_width() {/**/
+    function update_checkers_cell_width() {
       data = document.getElementById('input_checkers_cell_width').value;
       checkers_cell_width = parseInt(data);
       if (isNaN(checkers_cell_width))
         checkers_cell_width = 1;
-      //alert(data);
     }
-    function update_mouse(e) {/**/
+    function update_mousemove(e) {
+      var
+        dx = e.movementX,
+        dy = e.movementY;
+      MouseDX += -dx * 10.0;
+      MouseDY += dy * 10.0;
+    }
+
+    function update_mouse_client(e) {/**/
       var x = e.clientX;
       var y = e.clientY;
       MouseDX = MouseXO - x + MouseXS;
@@ -264,7 +279,7 @@
 
 
 
-    function myFunction(e) {
+    function notmyFunction(e) {
       var x = e.clientX;
       var y = e.clientY;
       var coor = "Coordinates: (" + x + "," + y + ")";
@@ -277,8 +292,8 @@
   </script>
 
 
-  <button>!</button>
-  <script>/**/
+
+  <script>/*<button>!</button>*/
   //  document.body.children[0].onclick = function (e) {
   //    if (!e.altKey || !e.shiftKey) return;
   //    alert('!');
@@ -291,11 +306,17 @@
 <body onload="webGLStart();">
   <p id="demoa"></p>
 
+  <script>
+    /*
+    <canvas id="wegl-canvas" style="border: none;" width="500" height="500"
+    onmouseout="out_update_mouse(event); clearCoor();" onmouseover="over_update_mouse(event);"
+    onmousemove="update_mouse_client(event); notmyFunction(event);" onmousedown="click_update_mouse(event);"></canvas>
+    */
+  </script>
 
-
-  <canvas id="wegl-canvas" style="border: none;" width="500" height="500" onmouseout="out_update_mouse(event);"
-    onmouseover="over_update_mouse(event);" onmousemove="update_mouse(event); myFunction(event);"
-    onmousedown="click_update_mouse(event);"></canvas>
+  <canvas id="wegl-canvas" style="border: none;" width="500" height="500"
+    onmousemove="notmyFunction(event); if (down_flag) update_mousemove(event);" onmousedown="down_flag = true;"
+    onmouseup="click_update_mouse(event); down_flag = false;" onmouseout="clearCoor(); down_flag = false"></canvas>"
 
   <br>
   <label for="input_checkers_cell_width"> cell width</label> <input type="text" id="input_checkers_cell_width"

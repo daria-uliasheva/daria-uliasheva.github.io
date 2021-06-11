@@ -1,0 +1,72 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title> Sample </title>
+    <script type="text/javascript" src="gl-matrix.js"></script>
+
+    <script id="shader-fs" type="x-shaders/x-fragment">
+    precision meiump float;
+    uniform float cell-width;
+    void main( void )
+    {
+        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+    }
+    </script>
+
+    <script id="shader-vs" type="x-shaders/x-vertex">
+    attribyte ve3 aVertexPos;
+    uniform mat4 UpMatrix;
+    uniform mat4 UmvMatrix;
+    void main( void )
+    {
+        
+    }</script>
+    <script type="text/javascript">
+        let fragmentShaderSrc =
+            `
+    precision meiump float;
+    uniform float cell-width;
+    void main( void )
+    {
+        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+    }`;
+        let vertexShaderSrc =
+            ``;
+
+        function getShader(gl, type, src) {
+            let shader = createShader(type);
+            gl.shaderSource(shader, src);
+            gl.compileShader(shader);
+
+            if (!gl.getShaderParaameter(shader, gl.COMPILE_STATUS)) {
+                windows.alert(gl.getShaderInfoLog(shader));
+            }
+            return shader;
+        }
+    </script>
+
+    <script type="text/javascript">
+        function InitRender() {
+            ///console.log("Hello");
+            let canvas = document.getElementById("webgl-canvas");
+            let gl = canvas.getContext("experimantal-webgl");
+            gl.viewportWidth = canvas.width;
+            gl.viewportHeight = canvas.height;
+            gl.clearColor(1.0, 0.5, 0.0, 1.0);
+            gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            ///gl.enable(gl.DEPTH_TEST);
+
+        }
+    </script>
+</head>
+
+<body onload="InitRender()">
+    Text
+    <div>Text in</div>
+    <canvas id="webgl-canvas" style="border: none;" width="500" height="500"></canvas>
+</body>
+
+</html>

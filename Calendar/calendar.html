@@ -1,0 +1,141 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Calendar</title>
+    <link rel="stylesheet" href="../index.css">
+
+    <style>
+        #calendar {
+            width: 100%;
+            font: bold normal large Palatino, serif;
+            line-height: 1.2em;
+            font-size: 15px;
+            text-align: center;
+            background-color: rgb(85, 85, 85);
+            color: greenyellow;
+        }
+
+        #calendar thead {
+            font-size: small;
+            color: rgb(85, 85, 85);
+            background-color: greenyellow;
+            font-size: 20px;
+        }
+
+        #main_day {
+            color: white;
+            background-color: tomato;
+        }
+    </style>
+
+    <script>
+        var
+            main_day = 14, main_month = 6, main_year = 2021;
+
+        function Date2WeekDay(day, month, year) {
+            var wday;
+
+            if (month == 1 || month == 2) {
+                year--;
+                month += 10;
+            }
+            else
+                month -= 2;
+
+            wday = (day + (31 * month) / 12 + year + year / 4 - year / 100 + year / 400) % 7;
+            wday = wday - 2;
+            if (wday < 0)
+                return 7 + wday;
+            else
+                return wday;
+        }
+
+
+        function update_table() {
+            var MainDay = new Date(main_year, main_month - 1, main_day),
+                FirstWDay = new Date(MainDay.getFullYear(), MainDay.getMonth(), 1).getDay(),
+                LastDay = new Date(MainDay.getFullYear(), MainDay.getMonth() + 1, 0).getDate(),
+                LastWDay = new Date(MainDay.getFullYear(), MainDay.getMonth(), LastDay).getDay(),
+                calendar,
+                month = ["January", "Febrary", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+	    /**/calendar = '<tr>';
+
+            if (FirstWDay != 0)
+                for (var i = 1; i < FirstWDay; i++)
+                    calendar += '<td>';
+            else
+                for (var i = 0; i < 6; i++)
+                    calendar += '<td>';
+
+            for (var i = 1; i <= LastDay; i++) {
+                if (i != MainDay.getDate())
+                    calendar += '<td>' + i;
+                else
+                    calendar += '<td id="main_day">' + i;
+
+                if (new Date(MainDay.getFullYear(), MainDay.getMonth(), i).getDay() == 0)
+                    calendar += '<tr>';
+            }
+
+            if (LastWDay != 0)
+                for (var i = LastWDay; i < 7; i++) calendar += '<td>';
+
+            document.querySelector('#calendar tbody').innerHTML = calendar;
+            document.querySelector('#calendar thead td:last-child').innerHTML = MainDay.getFullYear();
+            document.querySelector('#calendar thead td:first-child').innerHTML = month[MainDay.getMonth()];
+        }
+
+        function update_day() {
+            data = document.getElementById('input_day').value;
+            main_day = parseInt(data);
+
+            if (isNaN(main_day))
+                main_day = 1;
+        }
+
+        function update_month() {
+            data = document.getElementById('input_month').value;
+            main_month = parseInt(data);
+
+            if (isNaN(main_month))
+                main_month = 1;
+        }
+
+        function update_year() {
+            data = document.getElementById('input_year').value;
+            main_year = parseInt(data);
+
+            if (isNaN(main_year))
+                main_year = 1;
+        }
+    </script>
+</head>
+
+<body>
+    <label for="day"></label> <input type="text" id="input_day" onkeyup="update_day(); update_table();">
+    <label for="month"></label> <input type="text" id="input_month" onkeyup="update_month(); update_table();">
+    <label for="year"></label> <input type="text" id="input_year" onkeyup="update_year(); update_table();">
+    <div id="button4">
+        <input type="button" id="create" value="Prev" onclick="--main_month; update_table();">
+        <input type="button" id="create" value="Next" onclick="++main_month; update_table();">
+    </div>
+    <table id="calendar">
+        <thead>
+            <tr>
+                <td colspan="4">
+                <td colspan="3">
+            <tr>
+                <td>Mon
+                <td>Tue
+                <td>Wed
+                <td>Thu
+                <td>Fri
+                <td>Sat
+                <td>Sun
+        <tbody>
+    </table>
+</body>
+
+</html>

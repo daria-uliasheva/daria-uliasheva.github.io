@@ -25,6 +25,15 @@
   .button4 {border-radius: 12px;}
   .button5 {border-radius: 50%;}
 
+  table {
+    border-collapse: collapse;
+    border: 1px white;
+    width: 100%;
+  }
+  th, td {
+    border: 1px solid greenyellow;
+ }
+
   body {
     background-color: black;
     color: white;

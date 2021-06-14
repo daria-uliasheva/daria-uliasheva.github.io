@@ -225,8 +225,12 @@
     function update_checkers_cell_width() {
       data = document.getElementById('input_checkers_cell_width').value;
       checkers_cell_width = parseInt(data);
-      if (isNaN(checkers_cell_width))
+      if (isNaN(checkers_cell_width)) {
         checkers_cell_width = 1;
+        document.getElementById("input_checkers_cell_width").style.backgroundColor = "rgb(120, 0, 0)";
+      }
+      else
+        document.getElementById("input_checkers_cell_width").style.backgroundColor = "white";
     }
     function update_mousemove(e) {
       var

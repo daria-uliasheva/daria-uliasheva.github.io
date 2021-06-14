@@ -31,7 +31,7 @@
 
     <script>
         var
-            main_day = 14, main_month = 6, main_year = 2021;
+            main_day = new Date().getDate(), main_month = new Date().getMonth() + 1, main_year = new Date().getFullYear();
 
         function Date2WeekDay(day, month, year) {
             var wday;
@@ -70,7 +70,7 @@
                     calendar += '<td>';
 
             for (var i = 1; i <= LastDay; i++) {
-                if (i != MainDay.getDate())
+                if (i != MainDay.getDate() || (new Date().getFullYear() != main_year || new Date().getMonth() != main_month - 1))
                     calendar += '<td>' + i;
                 else
                     calendar += '<td id="main_day">' + i;
@@ -87,34 +87,36 @@
             document.querySelector('#calendar thead td:first-child').innerHTML = month[MainDay.getMonth()];
         }
 
-        function update_day() {
-            data = document.getElementById('input_day').value;
-            main_day = parseInt(data);
-
-            if (isNaN(main_day))
-                main_day = 1;
-        }
-
         function update_month() {
             data = document.getElementById('input_month').value;
             main_month = parseInt(data);
 
-            if (isNaN(main_month))
+            if (isNaN(main_month) || main_month <= 0 || main_month > 12) {
                 main_month = 1;
+                document.getElementById("input_month").style.backgroundColor = "tomato";
+            }
+            else {
+                document.getElementById("input_month").style.backgroundColor = "white";
+            }
         }
 
         function update_year() {
             data = document.getElementById('input_year').value;
             main_year = parseInt(data);
 
-            if (isNaN(main_year))
-                main_year = 1;
+            if (isNaN(main_year) || main_year >= 275760) {
+                main_month = 1;
+                document.getElementById("input_year").style.backgroundColor = "tomato";
+            }
+            else
+                document.getElementById("input_year").style.backgroundColor = "white";
         }
     </script>
 </head>
 
 <body>
-    <label for="day"></label> <input type="text" id="input_day" onkeyup="update_day(); update_table();">
+    <script>/*<label for="day"></label> <input type="text" id="input_day" onkeyup="update_day(); update_table();">*/</script>
+
     <label for="month"></label> <input type="text" id="input_month" onkeyup="update_month(); update_table();">
     <label for="year"></label> <input type="text" id="input_year" onkeyup="update_year(); update_table();">
     <div id="button4">
